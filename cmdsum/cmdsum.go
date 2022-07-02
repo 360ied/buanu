@@ -37,11 +37,12 @@ func hashOne(hashWriter hash.Hash, filename string) error {
 	if filename == "-" {
 		file = os.Stdin
 	} else {
-		var err error
-		file, err = os.Open(filename)
+		fileF, err := os.Open(filename)
 		if err != nil {
 			return err
 		}
+		file = fileF
+		defer fileF.Close()
 	}
 	if _, err := io.Copy(hashWriter, file); err != nil {
 		return err
