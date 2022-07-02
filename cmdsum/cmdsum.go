@@ -8,11 +8,13 @@ import (
 	"os"
 
 	"github.com/minio/sha256-simd"
+	"github.com/zeebo/blake3"
 )
 
 func Run() {
 	hashes := map[string]func() hash.Hash{
 		"sha256": sha256.New,
+		"blake3": func() hash.Hash { return blake3.New() },
 	}
 	if len(os.Args) < 3 {
 		log.Fatal("Hash function not specified.")
