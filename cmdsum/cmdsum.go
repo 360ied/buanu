@@ -2,16 +2,20 @@ package cmdsum
 
 import (
 	"buanu/util"
+	"context"
 	"fmt"
 	"hash"
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"sort"
 	"strings"
+	"sync/atomic"
 
 	"github.com/minio/sha256-simd"
 	"github.com/zeebo/blake3"
+	"golang.org/x/sync/semaphore"
 )
 
 func hashOne(hashWriter hash.Hash, filename string) error {
@@ -57,15 +61,22 @@ func Run() {
 	} else {
 		filenames = append(filenames, os.Args[3:]...)
 	}
-	hashWriter := hashWriterFunc()
-	hadError := false
+	hadError := uint32(0)
+	sem := semaphore.NewWeighted(int64(runtime.NumCPU()))
 	for _, filename := range filenames {
-		if err := hashOne(hashWriter, filename); err != nil {
-			log.Printf("Error while trying to sum %q: %s", filename, err.Error())
-			hadError = true
-		}
+		// loop variable filename captured by func literal
+		filename := filename
+		sem.Acquire(context.Background(), 1)
+		go func() {
+			hashWriter := hashWriterFunc()
+			if err := hashOne(hashWriter, filename); err != nil {
+				log.Printf("Error while trying to sum %q: %s", filename, err.Error())
+				atomic.StoreUint32(&hadError, ^uint32(0))
+			}
+			sem.Release(1)
+		}()
 	}
-	if hadError {
+	if hadError != 0 {
 		os.Exit(1)
 	}
 }
