@@ -16,12 +16,3 @@
 // You should have received a copy of the GNU General Public
 // License along with this program.  If not, see
 // <https://www.gnu.org/licenses/>.
-package util
-
-func MapKeysSlice[K comparable, V any](m map[K]V) []K {
-	var keys []K
-	for k, _ := range m {
-		keys = append(keys, k)
-	}
-	return keys
-}
