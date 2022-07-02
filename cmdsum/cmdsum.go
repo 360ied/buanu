@@ -1,7 +1,7 @@
 package cmdsum
 
 import (
-	"buanu/util"
+	"buanu/sums"
 	"context"
 	"fmt"
 	"hash"
@@ -9,12 +9,8 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"sort"
-	"strings"
 	"sync/atomic"
 
-	"github.com/minio/sha256-simd"
-	"github.com/zeebo/blake3"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -38,22 +34,13 @@ func hashOne(hashWriter hash.Hash, filename string) error {
 }
 
 func Run() {
-	hashes := map[string]func() hash.Hash{
-		"sha256": sha256.New,
-		"blake3": func() hash.Hash { return blake3.New() },
-	}
-	hashNamesFunc := func() string {
-		keysSlice := util.MapKeysSlice(hashes)
-		sort.Strings(keysSlice)
-		return strings.Join(keysSlice, ", ")
-	}
 	if len(os.Args) < 3 {
-		log.Fatalf("Hash function not specified. Valid hashes are: %s.", hashNamesFunc())
+		log.Fatalf("Hash function not specified. Valid hashes are: %s.", sums.GetHashNames())
 	}
 	hashName := os.Args[2]
-	hashWriterFunc, found := hashes[hashName]
+	hashWriterFunc, found := sums.Hashes[hashName]
 	if !found {
-		log.Fatalf("%q is not a valid hash function. Valid hashes are: %s.", hashName, hashNamesFunc())
+		log.Fatalf("%q is not a valid hash function. Valid hashes are: %s.", hashName, sums.GetHashNames())
 	}
 	var filenames []string
 	if len(os.Args) < 4 {
