@@ -62,7 +62,8 @@ func Run() {
 		filenames = append(filenames, os.Args[3:]...)
 	}
 	hadError := uint32(0)
-	sem := semaphore.NewWeighted(int64(runtime.NumCPU()))
+	ncpu := int64(runtime.NumCPU())
+	sem := semaphore.NewWeighted(ncpu)
 	for _, filename := range filenames {
 		// loop variable filename captured by func literal
 		filename := filename
@@ -76,6 +77,7 @@ func Run() {
 			sem.Release(1)
 		}()
 	}
+	sem.Acquire(context.Background(), ncpu)
 	if hadError != 0 {
 		os.Exit(1)
 	}
