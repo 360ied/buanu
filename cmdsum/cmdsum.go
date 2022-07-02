@@ -14,7 +14,17 @@ import (
 	"github.com/zeebo/blake3"
 )
 
-func hashOne(hashWriter hash.Hash, file io.Reader, filename string) error {
+func hashOne(hashWriter hash.Hash, filename string) error {
+	var file io.Reader
+	if filename == "-" {
+		file = os.Stdin
+	} else {
+		var err error
+		file, err = os.Open(filename)
+		if err != nil {
+			return err
+		}
+	}
 	if _, err := io.Copy(hashWriter, file); err != nil {
 		return err
 	}
@@ -41,8 +51,21 @@ func Run() {
 	if !found {
 		log.Fatalf("%q is not a valid hash function. Valid hashes are: %s.", hashName, hashNamesFunc())
 	}
+	var filenames []string
+	if len(os.Args) < 4 {
+		filenames = append(filenames, "-")
+	} else {
+		filenames = append(filenames, os.Args[3:]...)
+	}
 	hashWriter := hashWriterFunc()
-	if err := hashOne(hashWriter, os.Stdin, "-"); err != nil {
-		panic(err)
+	hadError := false
+	for _, filename := range filenames {
+		if err := hashOne(hashWriter, filename); err != nil {
+			log.Printf("Error while trying to sum %q: %s", filename, err.Error())
+			hadError = true
+		}
+	}
+	if hadError {
+		os.Exit(1)
 	}
 }
